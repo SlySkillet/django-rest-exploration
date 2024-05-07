@@ -1,15 +1,37 @@
 from snippets.models import Snippet
-from snippets.serializers import SnippetSerializer
-from rest_framework import generics
+from django.contrib.auth.models import User
+from snippets.serializers import SnippetSerializer, UserSerializer
+from rest_framework import generics, permissions
+from snippets.permissions import IsOwnerOrReadOnly
 
 
-class SnippetList(generics.ListAPIView):
+class UserList(generics.ListAPIView):
+    """
+    List all users and their snippets
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+class UserDetail(generics.RetrieveAPIView):
+    """
+    Retrieve user detail with snippets
+    """
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+
+class SnippetList(generics.ListCreateAPIView):
     """
     List all snippets, or create a new snippet.
     """
 
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 
 class SnippetDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -19,6 +41,7 @@ class SnippetDetail(generics.RetrieveUpdateDestroyAPIView):
 
     queryset = Snippet.objects.all()
     serializer_class = SnippetSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
 
 # @api_view(['GET', 'PUT', 'DELETE'])
